@@ -1,0 +1,78 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore Systems_One_File_Copy_Service.csproj
+
+      - name: Build
+        run: dotnet build Systems_One_File_Copy_Service.csproj --configuration Release --no-restore
+
+      - name: Set version
+        id: version
+        shell: pwsh
+        run: |
+          $version = "v$(Get-Date -Format 'yyyy.MM.dd').${{ github.run_number }}"
+          $versionNumber = $version.TrimStart('v')
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          echo "VERSION_NUMBER=$versionNumber" >> $env:GITHUB_OUTPUT
+
+      - name: Publish application
+        shell: pwsh
+        run: |
+          dotnet publish Systems_One_File_Copy_Service.csproj `
+            --configuration Release `
+            --runtime win-x64 `
+            --self-contained true `
+            --output ./publish `
+            /p:PublishSingleFile=false `
+            --no-restore
+
+      - name: Build Inno Setup Installer
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
+        with:
+          path: setup.iss
+          options: /O+ /DMyAppVersion=${{ steps.version.outputs.VERSION_NUMBER }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.VERSION }}
+          name: "Release ${{ steps.version.outputs.VERSION }}"
+          body: |
+            ## Systems One File Copy Service ${{ steps.version.outputs.VERSION }}
+
+            Automated release — built from commit ${{ github.sha }}.
+
+            ### Installation
+            1. Download `SystemsOneFileCopyService_Setup_${{ steps.version.outputs.VERSION_NUMBER }}.exe`
+            2. Run as Administrator
+            3. On first start the service creates its settings file — edit it before use:
+               `C:\Users\Public\Documents\Systems_One_Settings\upload_settings.json`
+            4. Run the database setup script if this is a new installation:
+               `C:\Program Files\Systems One File Copy Service\Database\Setup.sql`
+
+            ### Files
+            - `SystemsOneFileCopyService_Setup_${{ steps.version.outputs.VERSION_NUMBER }}.exe` — Windows installer (run as Administrator)
+          files: installer_output/SystemsOneFileCopyService_Setup_*.exe
+          draft: false
+          prerelease: false

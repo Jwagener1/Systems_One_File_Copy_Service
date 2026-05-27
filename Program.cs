@@ -13,7 +13,8 @@ try
 
     builder.Services.AddWindowsService(options =>
     {
-        options.ServiceName = "Systems One File Copy Service";
+        // Must match MyAppServiceName in setup.iss and the sc.exe create call
+        options.ServiceName = "SystemsOneFileCopyService";
     });
 
     // Load user settings from the seeded file (reloads on change)

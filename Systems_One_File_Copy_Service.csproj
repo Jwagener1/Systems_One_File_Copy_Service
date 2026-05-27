@@ -7,6 +7,7 @@
     <RootNamespace>SystemsOne.FileCopyService</RootNamespace>
     <AssemblyName>SystemsOneFileCopyService</AssemblyName>
     <Description>Systems One File Copy Service — copies scan data to a Windows share folder</Description>
+    <ApplicationIcon Condition="Exists('Icon\icon.ico')">Icon\icon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,6 +25,12 @@
     </Content>
     <Content Update="Customer_Example_Files\**\*">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="Icon\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="Database\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
 

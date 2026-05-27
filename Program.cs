@@ -3,9 +3,11 @@ using SystemsOne.FileCopyService.Helpers;
 using SystemsOne.FileCopyService.Models;
 using SystemsOne.FileCopyService.Services;
 
-// Pre-host: seed settings files and start logging before the host is built
-SettingsInitializationService.EnsureSettingsFileExists();
+// Logging first so SettingsInitializationService can write to the log
 LoggingService.Initialize();
+LoggingService.Upload.Information("Service process starting.");
+
+SettingsInitializationService.EnsureSettingsFileExists();
 
 try
 {
@@ -17,12 +19,12 @@ try
         options.ServiceName = "SystemsOneFileCopyService";
     });
 
-    // Load user settings from the seeded file (reloads on change)
     var settingsPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.CommonDocuments),
         "Systems_One_Settings",
         "upload_settings.json");
 
+    LoggingService.Upload.Debug("Loading settings from: {Path}", settingsPath);
     builder.Configuration.AddJsonFile(settingsPath, optional: false, reloadOnChange: true);
 
     var appSettings = builder.Configuration.Get<AppSettings>()
@@ -30,10 +32,37 @@ try
 
     ValidateSettings(appSettings);
 
+    // Log all resolved paths and values so problems are immediately visible in the log
+    LoggingService.Upload.Information(
+        "Settings loaded — Customer: {Customer} | DB: {Server}/{Database} | Table: {Table}",
+        appSettings.Customer,
+        appSettings.Database.Server,
+        appSettings.Database.DatabaseName,
+        appSettings.Database.TableName);
+
+    LoggingService.Upload.Information(
+        "Share config — Base: {Base} | DataDir: {DataDir} | ImageDir: {ImageDir} | Credentials: {Creds}",
+        appSettings.WindowsShare.BaseSharePath,
+        appSettings.WindowsShare.DataRemoteDirectory,
+        appSettings.WindowsShare.ImageRemoteDirectory,
+        string.IsNullOrWhiteSpace(appSettings.WindowsShare.ShareUsername) ? "none (service account)" : $"user '{appSettings.WindowsShare.ShareUsername}'");
+
+    LoggingService.Upload.Information(
+        "File paths — CSV archive: {CsvArchive} | Image source: {ImgSrc} | Image archive: {ImgArchive} | Image upload: {ImgEnabled}",
+        appSettings.FileSettings.Data.ArchiveFolder,
+        appSettings.FileSettings.Image.SourceFolder,
+        appSettings.FileSettings.Image.ArchiveFolder,
+        appSettings.FileSettings.Image.EnableUpload);
+
+    LoggingService.Upload.Information(
+        "Timing — Interval: {Interval}ms | MaxRetries: {Retries}",
+        appSettings.General.UploadInterval_ms,
+        appSettings.WindowsShare.MaxRetries);
+
     // Register services
     builder.Services.AddSingleton(appSettings);
     builder.Services.AddSingleton<ICustomerProfileService, CustomerProfileService>();
-    builder.Services.AddSingleton<IFileTransferService, WindowsShareService>();  // singleton: one OS-level share connection
+    builder.Services.AddSingleton<IFileTransferService, WindowsShareService>();
     builder.Services.AddScoped<IDatabaseService, DatabaseService>();
     builder.Services.AddScoped<IFileBuilder, FileBuilder>();
     builder.Services.AddScoped<IFileService, FileService>();
@@ -42,10 +71,10 @@ try
 
     var host = builder.Build();
 
-    // Trigger profile load here so any validation error surfaces before the service starts
+    LoggingService.Upload.Debug("Loading and validating customer profile...");
     host.Services.GetRequiredService<ICustomerProfileService>().GetProfile();
 
-    LoggingService.Upload.Information("Configuration validated. Starting host.");
+    LoggingService.Upload.Information("Startup complete. Starting host.");
     host.Run();
 }
 catch (Exception ex)
@@ -73,6 +102,12 @@ static void ValidateSettings(AppSettings s)
     if (!string.IsNullOrWhiteSpace(s.WindowsShare.ShareUsername) &&
         string.IsNullOrWhiteSpace(s.WindowsShare.SharePassword))
         errors.Add("WindowsShare.SharePassword must be set when ShareUsername is provided.");
+
+    if (string.IsNullOrWhiteSpace(s.FileSettings.Data.ArchiveFolder))
+        errors.Add("FileSettings.Data.ArchiveFolder must not be empty.");
+
+    if (s.FileSettings.Image.EnableUpload && string.IsNullOrWhiteSpace(s.FileSettings.Image.SourceFolder))
+        errors.Add("FileSettings.Image.SourceFolder must not be empty when image upload is enabled.");
 
     if (errors.Count > 0)
         throw new InvalidOperationException("Startup validation failed:\n" + string.Join("\n", errors));

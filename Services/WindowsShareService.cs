@@ -11,10 +11,6 @@ public interface IFileTransferService
     Task<bool> TestConnectionAsync();
 }
 
-/// <summary>
-/// Copies files to a Windows share (UNC path). Optionally connects with explicit
-/// credentials via WNetAddConnection2 when the service account lacks direct access.
-/// </summary>
 [SupportedOSPlatform("windows")]
 public sealed class WindowsShareService : IFileTransferService, IDisposable
 {
@@ -26,6 +22,10 @@ public sealed class WindowsShareService : IFileTransferService, IDisposable
     public WindowsShareService(AppSettings settings)
     {
         _cfg = settings.WindowsShare;
+        LoggingService.Upload.Information(
+            "WindowsShareService initialised — Base: {Base} | Credentials: {Creds}",
+            _cfg.BaseSharePath,
+            string.IsNullOrWhiteSpace(_cfg.ShareUsername) ? "none (service account)" : $"user '{_cfg.ShareUsername}'");
     }
 
     public async Task CopyFileAsync(string localPath, string remoteDirectory, CancellationToken ct)
@@ -33,38 +33,67 @@ public sealed class WindowsShareService : IFileTransferService, IDisposable
         EnsureConnected();
 
         var destDir = BuildRemotePath(remoteDirectory);
-        Directory.CreateDirectory(destDir);
+        LoggingService.Upload.Debug("CopyFile — source: {Src} | destination directory: {Dir}", localPath, destDir);
+
+        try
+        {
+            Directory.CreateDirectory(destDir);
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Upload.Error(ex, "Failed to create destination directory on share: {Dir}", destDir);
+            throw;
+        }
 
         var fileName = Path.GetFileName(localPath);
         var finalPath = ResolveUniqueDestPath(destDir, fileName);
         var tempPath = finalPath + ".uploading";
 
-        // Atomic: write to .uploading then rename to final name
-        await Task.Run(() =>
+        LoggingService.Upload.Debug("Copying to temp: {Temp}", tempPath);
+        try
         {
-            File.Copy(localPath, tempPath, overwrite: true);
-            File.Move(tempPath, finalPath, overwrite: false);
-        }, ct);
+            await Task.Run(() => File.Copy(localPath, tempPath, overwrite: true), ct);
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Upload.Error(ex, "File.Copy failed: {Src} → {Temp}", localPath, tempPath);
+            throw;
+        }
 
-        LoggingService.Upload.Information("Copied to share: {Dest}", finalPath);
+        LoggingService.Upload.Debug("Renaming temp to final: {Temp} → {Final}", tempPath, finalPath);
+        try
+        {
+            File.Move(tempPath, finalPath, overwrite: false);
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Upload.Error(ex, "File.Move failed: {Temp} → {Final}", tempPath, finalPath);
+            throw;
+        }
+
+        LoggingService.Upload.Information("File copied to share: {Final}", finalPath);
     }
 
     public Task<bool> TestConnectionAsync()
     {
+        LoggingService.Upload.Debug("Testing share connection: {Base}", _cfg.BaseSharePath);
         try
         {
             EnsureConnected();
             var dataDir = BuildRemotePath(_cfg.DataRemoteDirectory);
+            LoggingService.Upload.Debug("Checking data directory exists or can be created: {Dir}", dataDir);
             var ok = Directory.Exists(dataDir) || TryCreateDirectory(dataDir);
             if (ok)
-                LoggingService.Upload.Information("Share connection test passed: {Path}", dataDir);
+                LoggingService.Upload.Information("Share connection test passed: {Dir}", dataDir);
             else
-                LoggingService.Upload.Warning("Share path not accessible: {Path}", dataDir);
+                LoggingService.Upload.Warning(
+                    "Share data directory is not accessible and could not be created: {Dir}", dataDir);
             return Task.FromResult(ok);
         }
         catch (Exception ex)
         {
-            LoggingService.Upload.Warning(ex, "Share connection test failed.");
+            LoggingService.Upload.Warning(ex,
+                "Share connection test failed for: {Base}", _cfg.BaseSharePath);
             return Task.FromResult(false);
         }
     }
@@ -76,7 +105,20 @@ public sealed class WindowsShareService : IFileTransferService, IDisposable
         {
             if (_connected) return;
             if (!string.IsNullOrWhiteSpace(_cfg.ShareUsername))
+            {
+                LoggingService.Upload.Debug(
+                    "Connecting to share with credentials — share: {Share} | user: {User}",
+                    _cfg.BaseSharePath,
+                    string.IsNullOrEmpty(_cfg.ShareDomain)
+                        ? _cfg.ShareUsername
+                        : $"{_cfg.ShareDomain}\\{_cfg.ShareUsername}");
                 ConnectWithCredentials();
+            }
+            else
+            {
+                LoggingService.Upload.Debug(
+                    "Using service account credentials for share: {Share}", _cfg.BaseSharePath);
+            }
             _connected = true;
         }
     }
@@ -95,9 +137,17 @@ public sealed class WindowsShareService : IFileTransferService, IDisposable
 
         var result = WNetAddConnection2(ref resource, _cfg.SharePassword, user, 0);
 
-        if (result != 0 && result != ERROR_ALREADY_ASSIGNED && result != ERROR_SESSION_CREDENTIAL_CONFLICT)
+        if (result == ERROR_ALREADY_ASSIGNED || result == ERROR_SESSION_CREDENTIAL_CONFLICT)
+        {
+            LoggingService.Upload.Debug(
+                "Share already connected (Win32 code {Code}): {Share}", result, _cfg.BaseSharePath);
+            return;
+        }
+
+        if (result != 0)
             throw new InvalidOperationException(
-                $"WNetAddConnection2 failed for '{_cfg.BaseSharePath}'. Win32 error: {result}");
+                $"WNetAddConnection2 failed for '{_cfg.BaseSharePath}'. Win32 error code: {result}. " +
+                "Check that BaseSharePath, ShareUsername, SharePassword and ShareDomain are correct.");
 
         LoggingService.Upload.Information("Connected to share: {Share}", _cfg.BaseSharePath);
     }
@@ -119,19 +169,23 @@ public sealed class WindowsShareService : IFileTransferService, IDisposable
     private static bool TryCreateDirectory(string path)
     {
         try { Directory.CreateDirectory(path); return true; }
-        catch { return false; }
+        catch (Exception ex)
+        {
+            LoggingService.Upload.Debug("Could not create directory {Path}: {Error}", path, ex.Message);
+            return false;
+        }
     }
 
     public void Dispose()
     {
         if (_disposed) return;
         _disposed = true;
-
         if (_connected && !string.IsNullOrWhiteSpace(_cfg.ShareUsername))
+        {
+            LoggingService.Upload.Debug("Disconnecting from share: {Share}", _cfg.BaseSharePath);
             WNetCancelConnection2(_cfg.BaseSharePath, 0, fForce: false);
+        }
     }
-
-    // ── Win32 P/Invoke ────────────────────────────────────────────────────────
 
     private const int RESOURCETYPE_DISK = 1;
     private const int ERROR_ALREADY_ASSIGNED = 85;

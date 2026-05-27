@@ -38,17 +38,32 @@ public class CustomerProfileService : ICustomerProfileService
             "Profiles",
             $"{_settings.Customer}.profile.json");
 
+        LoggingService.Upload.Debug("Loading customer profile: {Path}", profilePath);
+
         if (!File.Exists(profilePath))
-            throw new FileNotFoundException($"Customer profile not found: {profilePath}");
+            throw new FileNotFoundException(
+                $"Customer profile not found: {profilePath}. " +
+                $"Expected a file named '{_settings.Customer}.profile.json' in the Profiles folder.");
+
+        var json = File.ReadAllText(profilePath);
+        LoggingService.Upload.Debug("Profile file read ({Bytes} bytes). Deserializing...", json.Length);
 
         var profile = JsonSerializer.Deserialize<CustomerProfile>(
-            File.ReadAllText(profilePath),
+            json,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-            ?? throw new InvalidOperationException("Failed to deserialize customer profile.");
+            ?? throw new InvalidOperationException($"Profile deserialized to null: {profilePath}");
+
+        LoggingService.Upload.Debug(
+            "Profile deserialized — CustomerName: {Name} | Version: {Version} | Columns: {Cols}",
+            profile.CustomerName, profile.ProfileVersion, profile.Columns.Count);
 
         Validate(profile);
 
-        LoggingService.Upload.Information("Loaded customer profile: {Customer}", profile.CustomerName);
+        LoggingService.Upload.Information(
+            "Customer profile loaded: {Customer} ({Cols} columns, Quote={Quote}, Delimiter='{Delim}', Encoding={Enc})",
+            profile.CustomerName, profile.Columns.Count,
+            profile.Csv.Quote, profile.Csv.Delimiter, profile.Csv.Encoding);
+
         return profile;
     }
 

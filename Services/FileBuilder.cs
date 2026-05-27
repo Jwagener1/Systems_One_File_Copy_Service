@@ -23,11 +23,27 @@ public class FileBuilder : IFileBuilder
     public async Task<string> BuildAsync(UploadRecord record, CancellationToken ct)
     {
         var profile = _profileService.GetProfile();
-        var outputDir = Path.Combine(_settings.FileSettings.Data.ArchiveFolder, DateTime.Now.ToString("yyyy-MM-dd"));
-        Directory.CreateDirectory(outputDir);
+
+        var archiveFolder = _settings.FileSettings.Data.ArchiveFolder;
+        if (string.IsNullOrWhiteSpace(archiveFolder))
+            throw new InvalidOperationException("FileSettings.Data.ArchiveFolder is not configured.");
+
+        var outputDir = Path.Combine(archiveFolder, DateTime.Now.ToString("yyyy-MM-dd"));
+        LoggingService.Upload.Debug("CSV archive directory: {Dir}", outputDir);
+
+        try
+        {
+            Directory.CreateDirectory(outputDir);
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Upload.Error(ex, "Failed to create CSV archive directory: {Dir}", outputDir);
+            throw;
+        }
 
         var fileName = BuildFileName(record, profile.FileName);
         var filePath = ResolveUniqueFilePath(Path.Combine(outputDir, fileName));
+        LoggingService.Upload.Debug("CSV output path: {Path}", filePath);
 
         var lineEnding = profile.Csv.LineEnding == "LF" ? "\n" : "\r\n";
         var encoding = ResolveEncoding(profile.Csv.Encoding);
@@ -43,10 +59,22 @@ public class FileBuilder : IFileBuilder
         sb.Append(lineEnding);
 
         var content = sb.ToString();
-        await File.WriteAllTextAsync(filePath, content, encoding, ct);
+        LoggingService.Upload.Debug(
+            "Writing CSV: {Path} | {Cols} column(s) | encoding={Enc} | {Bytes} bytes",
+            filePath, profile.Columns.Count, profile.Csv.Encoding, encoding.GetByteCount(content));
 
-        LoggingService.Upload.Information("CSV built: {FilePath}", filePath);
-        LoggingService.Files.Information("File: {FilePath}{NewLine}{Content}", filePath, Environment.NewLine, content);
+        try
+        {
+            await File.WriteAllTextAsync(filePath, content, encoding, ct);
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Upload.Error(ex, "Failed to write CSV file: {Path}", filePath);
+            throw;
+        }
+
+        LoggingService.Upload.Information("CSV written: {Path}", filePath);
+        LoggingService.Files.Information("File: {Path}{NewLine}{Content}", filePath, Environment.NewLine, content);
 
         return filePath;
     }
@@ -67,7 +95,12 @@ public class FileBuilder : IFileBuilder
     private string RenderColumn(ColumnProfile col, UploadRecord record, CustomerProfile profile)
     {
         if (!Enum.TryParse<ColumnSource>(col.Source, ignoreCase: true, out var source))
+        {
+            LoggingService.Upload.Warning(
+                "Column '{Name}' has unknown Source '{Source}' — writing null literal.",
+                col.Name, col.Source);
             return ApplyQuoting(profile.Csv.NullLiteral, profile.Csv);
+        }
 
         var value = ResolveValue(source, col, record, profile);
         return ApplyQuoting(value ?? profile.Csv.NullLiteral, profile.Csv);

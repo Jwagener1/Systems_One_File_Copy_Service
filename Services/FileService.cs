@@ -21,30 +21,65 @@ public class FileService : IFileService
 
     public Task<string?> FindImageAsync(UploadRecord record, CancellationToken ct)
     {
-        var expected = Path.Combine(
-            _settings.FileSettings.Image.SourceFolder,
-            $"{SanitizeFileName(record.Barcode)}-{record.ItemDateTime:yyyyMMddHHmmss}.jpg");
+        var sourceFolder = _settings.FileSettings.Image.SourceFolder;
+        var expectedFileName = $"{SanitizeFileName(record.Barcode)}-{record.ItemDateTime:yyyyMMddHHmmss}.jpg";
+        var expectedPath = Path.Combine(sourceFolder, expectedFileName);
 
-        return Task.FromResult(File.Exists(expected) ? expected : null);
+        LoggingService.Upload.Debug("Looking for image: {Path}", expectedPath);
+
+        if (File.Exists(expectedPath))
+        {
+            LoggingService.Upload.Debug("Image found: {Path}", expectedPath);
+            return Task.FromResult<string?>(expectedPath);
+        }
+
+        LoggingService.Upload.Debug(
+            "Image not found at: {Path} (source folder exists: {FolderExists})",
+            expectedPath,
+            Directory.Exists(sourceFolder));
+
+        return Task.FromResult<string?>(null);
     }
 
     public async Task<string> CopyImageToArchiveAsync(string sourcePath, string fileName, CancellationToken ct)
     {
         var archiveDir = Path.Combine(_settings.FileSettings.Image.ArchiveFolder, DateTime.Now.ToString("yyyy-MM-dd"));
-        Directory.CreateDirectory(archiveDir);
+        LoggingService.Upload.Debug("Image archive directory: {Dir}", archiveDir);
+
+        try
+        {
+            Directory.CreateDirectory(archiveDir);
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Upload.Error(ex, "Failed to create image archive directory: {Dir}", archiveDir);
+            throw;
+        }
 
         var dest = ResolveUniqueFilePath(Path.Combine(archiveDir, fileName));
-        await Task.Run(() => File.Copy(sourcePath, dest), ct);
-        LoggingService.Upload.Information("Image archived to: {Path}", dest);
+        LoggingService.Upload.Debug("Copying image to archive: {Src} → {Dest}", sourcePath, dest);
+
+        try
+        {
+            await Task.Run(() => File.Copy(sourcePath, dest), ct);
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Upload.Error(ex, "Failed to copy image to archive: {Src} → {Dest}", sourcePath, dest);
+            throw;
+        }
+
+        LoggingService.Upload.Information("Image archived: {Path}", dest);
         return dest;
     }
 
     public void DeleteSourceFile(string filePath)
     {
+        LoggingService.Upload.Debug("Deleting source image: {Path}", filePath);
         try
         {
             File.Delete(filePath);
-            LoggingService.Upload.Information("Deleted source image: {Path}", filePath);
+            LoggingService.Upload.Information("Source image deleted: {Path}", filePath);
         }
         catch (Exception ex)
         {

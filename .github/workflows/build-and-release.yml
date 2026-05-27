@@ -22,7 +22,7 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore Systems_One_File_Copy_Service.csproj
+        run: dotnet restore Systems_One_File_Copy_Service.csproj --runtime win-x64
 
       - name: Build
         run: dotnet build Systems_One_File_Copy_Service.csproj --configuration Release --no-restore

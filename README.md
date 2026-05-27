@@ -16,8 +16,8 @@ On first start the service creates:
 C:\Users\Public\Documents\Systems_One_Settings\
 ├── upload_settings.json        ← edit this with your DB and share details
 └── Profiles\
-    ├── Rhenus_Durban.profile.json
-    └── PEP_Africa.profile.json
+    ├── Rhenus_Durban.json
+    └── PEP_Africa.json
 ```
 
 Edit `upload_settings.json` before starting the service. The file is **never overwritten** on subsequent starts.
@@ -26,7 +26,7 @@ Edit `upload_settings.json` before starting the service. The file is **never ove
 
 | Key | Description |
 |-----|-------------|
-| `Customer` | Must match a `{Name}.profile.json` in the Profiles folder |
+| `Customer` | Must match a `{Name}.json` in the Profiles folder |
 | `Database.*` | SQL Server connection details |
 | `WindowsShare.BaseSharePath` | UNC root, e.g. `\\SERVER\Share` |
 | `WindowsShare.DataRemoteDirectory` | Sub-folder for CSV files |
@@ -82,6 +82,6 @@ Logs roll over at midnight. Folders older than 30 days are deleted automatically
 Customer profiles live in `Systems_One_Settings\Profiles\`. See `Customer_Example_Files\customer.profile.schema.json` for the full schema and the bundled Rhenus_Durban / PEP_Africa profiles for examples.
 
 To add a new customer:
-1. Create `{CustomerName}.profile.json` in the Profiles folder.
-2. Set `Customer` in `upload_settings.json` to match the file name (without `.profile.json`).
+1. Create `{CustomerName}.json` in the Profiles folder.
+2. Set `Customer` in `upload_settings.json` to match the file name (without `.json`).
 3. Restart the service.

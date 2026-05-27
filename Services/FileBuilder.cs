@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using SystemsOne.FileCopyService.Helpers;
 using SystemsOne.FileCopyService.Models;
@@ -112,9 +113,9 @@ public class FileBuilder : IFileBuilder
         return source switch
         {
             ColumnSource.Barcode          => record.Barcode,
-            ColumnSource.ItemDateTime     => record.ItemDateTime.ToString($"{csv.DateFormat} {csv.TimeFormat}"),
-            ColumnSource.DateOnly         => record.ItemDateTime.ToString(csv.DateFormat),
-            ColumnSource.TimeOnly         => record.ItemDateTime.ToString(csv.TimeFormat),
+            ColumnSource.ItemDateTime     => record.ItemDateTime.ToString(col.Format ?? $"{csv.DateFormat} {csv.TimeFormat}"),
+            ColumnSource.DateOnly         => record.ItemDateTime.ToString(col.Format ?? csv.DateFormat),
+            ColumnSource.TimeOnly         => record.ItemDateTime.ToString(col.Format ?? csv.TimeFormat),
             ColumnSource.Length           => record.Length.HasValue   ? FormatDecimal(record.Length.Value, csv)   : null,
             ColumnSource.Width            => record.Width.HasValue    ? FormatDecimal(record.Width.Value, csv)    : null,
             ColumnSource.Height           => record.Height.HasValue   ? FormatDecimal(record.Height.Value, csv)   : null,
@@ -141,7 +142,10 @@ public class FileBuilder : IFileBuilder
 
     private static string FormatDecimal(decimal value, CsvProfile csv)
     {
-        var s = value.ToString(csv.NumberFormat);
+        // Always format against the invariant culture so the decimal point is "." regardless
+        // of the machine's locale, then apply the profile's configured separator. Without this,
+        // a comma-decimal locale produces "1,0000" which collides with a comma CSV delimiter.
+        var s = value.ToString(csv.NumberFormat, CultureInfo.InvariantCulture);
         return csv.DecimalSeparator != "." ? s.Replace(".", csv.DecimalSeparator) : s;
     }
 

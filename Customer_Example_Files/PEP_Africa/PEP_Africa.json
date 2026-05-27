@@ -1,0 +1,59 @@
+{
+  "$schema": "../customer.profile.schema.json",
+  "ProfileVersion": 1,
+  "CustomerName": "PEP_Africa",
+  "Description": "PEP Africa CSV layout. Header row present. Unquoted fields. Invariant decimal point. Single 'Date/Time' column in 'yyyyMMdd HH:mm:ss' format. Unmapped columns emit the literal string 'NULL'. Filename = 'DIM.{Barcode}{yyyyMMdd}_{HHmmss}.csv' where the timestamp is file-creation time (Now), not the item measurement time. Numeric values are formatted to two decimal places (F2).",
+
+  "FileName": {
+    "Prefix": "DIM.",
+    "IncludeBarcodeInFileName": true,
+    "BarcodeSource": "Barcode",
+    "DateTimeSource": "Now",
+    "DateTimeFormat": "yyyyMMdd_HHmmss",
+    "Separator": "",
+    "Extension": ".csv"
+  },
+
+  "Csv": {
+    "IncludeHeaders": true,
+    "Delimiter": ",",
+    "Quote": "Never",
+    "QuoteCharacter": "\"",
+    "DecimalSeparator": ".",
+    "NumberFormat": "0.####",
+    "DateFormat": "yyyyMMdd HH:mm:ss",
+    "TimeFormat": "HH:mm:ss",
+    "NullLiteral": "",
+    "HubCode": "",
+    "Encoding": "UTF-8",
+    "LineEnding": "CRLF"
+  },
+
+  "Columns": [
+    { "Name": "Item number",   "Source": "Barcode" },
+    { "Name": "Pack type",     "Source": "Null" },
+    { "Name": "Description",   "Source": "Null" },
+    { "Name": "Length",        "Source": "Length" },
+    { "Name": "Width",         "Source": "Width" },
+    { "Name": "Height",        "Source": "Height" },
+    { "Name": "Weight",        "Source": "Weight" },
+    { "Name": "Volume",        "Source": "LiquidVolume" },
+    { "Name": "Dim Wgt",       "Source": "Null" },
+    { "Name": "Dim unit",      "Source": "Constant", "Constant": "cm" },
+    { "Name": "Wgt unit",      "Source": "Constant", "Constant": "kg" },
+    { "Name": "Vol unit",      "Source": "Constant", "Constant": "cm" },
+    { "Name": "Factor",        "Source": "Null"},
+    { "Name": "Site ID",       "Source": "Null" },
+    { "Name": "Date/Time",     "Source": "ItemDateTime", "Format": "yyyyMMdd HH:mm:ss" },
+    { "Name": "User 1",        "Source": "Null" },
+    { "Name": "User 2",        "Source": "Null" },
+    { "Name": "User 3",        "Source": "Null" },
+    { "Name": "User 4",        "Source": "Null" },
+    { "Name": "User 5",        "Source": "Null" },
+    { "Name": "User 6",        "Source": "Null" },
+    { "Name": "User 7",        "Source": "Null" },
+    { "Name": "User 8",        "Source": "Constant", "Constant": "0" },
+    { "Name": "Snapshot file", "Source": "Null" },
+    { "Name": "Updated",       "Source": "Constant", "Constant": "Y" }
+  ]
+}

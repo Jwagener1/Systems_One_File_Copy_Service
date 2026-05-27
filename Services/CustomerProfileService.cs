@@ -36,14 +36,14 @@ public class CustomerProfileService : ICustomerProfileService
             Environment.GetFolderPath(Environment.SpecialFolder.CommonDocuments),
             "Systems_One_Settings",
             "Profiles",
-            $"{_settings.Customer}.profile.json");
+            $"{_settings.Customer}.json");
 
         LoggingService.Upload.Debug("Loading customer profile: {Path}", profilePath);
 
         if (!File.Exists(profilePath))
             throw new FileNotFoundException(
                 $"Customer profile not found: {profilePath}. " +
-                $"Expected a file named '{_settings.Customer}.profile.json' in the Profiles folder.");
+                $"Expected a file named '{_settings.Customer}.json' in the Profiles folder.");
 
         var json = File.ReadAllText(profilePath);
         LoggingService.Upload.Debug("Profile file read ({Bytes} bytes). Deserializing...", json.Length);

@@ -42,6 +42,10 @@ public class ColumnProfile
     public string Source { get; set; } = string.Empty;
     public string? Constant { get; set; }
     public decimal? DimWeightFactor { get; set; }
+
+    /// <summary>Optional per-column date/time format. When set, overrides the
+    /// profile's Csv DateFormat/TimeFormat for ItemDateTime, DateOnly and TimeOnly sources.</summary>
+    public string? Format { get; set; }
 }
 
 public enum ColumnSource

@@ -53,7 +53,9 @@ public static class SettingsInitializationService
             return;
         }
 
-        var files = Directory.GetFiles(examplesDir, "*.profile.json", SearchOption.AllDirectories);
+        var files = Directory.GetFiles(examplesDir, "*.json", SearchOption.AllDirectories)
+            .Where(f => !Path.GetFileName(f).EndsWith(".schema.json", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
         LoggingService.Upload.Debug("Found {Count} example profile(s) in: {Dir}", files.Length, examplesDir);
 
         foreach (var file in files)

@@ -9,8 +9,8 @@ public class UploadRecord
     public decimal? Width { get; set; }
     public decimal? Height { get; set; }
     public decimal? Weight { get; set; }
-    public long? BoxVolume { get; set; }
-    public long? LiquidVolume { get; set; }
+    public decimal? BoxVolume { get; set; }
+    public decimal? LiquidVolume { get; set; }
     public bool? NoDimension { get; set; }
     public bool? NoWeight { get; set; }
     public bool? Sent { get; set; }

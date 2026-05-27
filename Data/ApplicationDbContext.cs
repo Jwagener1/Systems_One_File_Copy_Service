@@ -28,19 +28,20 @@ public class ApplicationDbContext : DbContext
             entity.ToTable(_tableName);
             entity.HasKey(e => e.Id);
 
-            entity.Property(e => e.Barcode).HasMaxLength(100);
+            entity.Property(e => e.Barcode).HasMaxLength(200);
             entity.Property(e => e.Length).HasColumnType("decimal(10,1)");
             entity.Property(e => e.Width).HasColumnType("decimal(10,1)");
             entity.Property(e => e.Height).HasColumnType("decimal(10,1)");
             entity.Property(e => e.Weight).HasColumnType("decimal(18,3)");
-            // BoxVolume and LiquidVolume are BIGINT → long, no explicit mapping needed
+            entity.Property(e => e.BoxVolume).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.LiquidVolume).HasColumnType("decimal(18,2)");
             entity.Property(e => e.ItemSpec).HasColumnType("smallint");
             entity.Property(e => e.ItemCount).HasColumnType("smallint");
-            entity.Property(e => e.StoreId).HasMaxLength(32);
-            entity.Property(e => e.StoreName).HasMaxLength(200);
-            entity.Property(e => e.ErrorDescription).HasMaxLength(500);
+            entity.Property(e => e.StoreId).HasMaxLength(64);
+            entity.Property(e => e.StoreName).HasMaxLength(400);
+            entity.Property(e => e.ErrorDescription).HasMaxLength(1000);
             entity.Property(e => e.Direction).HasMaxLength(10);
-            entity.Property(e => e.TransactionType).HasMaxLength(20);
+            entity.Property(e => e.TransactionType).HasMaxLength(40);
         });
     }
 }

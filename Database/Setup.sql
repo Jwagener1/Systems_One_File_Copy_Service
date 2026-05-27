@@ -57,13 +57,13 @@ BEGIN
     (
         [Id]               INT             IDENTITY(1,1)   NOT NULL,
         [ItemDateTime]     DATETIME                        NOT NULL,
-        [Barcode]          NVARCHAR(100)                   NULL,
+        [Barcode]          NVARCHAR(200)                   NULL,
         [Length]           DECIMAL(10,1)                   NULL,
         [Width]            DECIMAL(10,1)                   NULL,
         [Height]           DECIMAL(10,1)                   NULL,
         [Weight]           DECIMAL(18,3)                   NULL,
-        [BoxVolume]        BIGINT                          NULL,
-        [LiquidVolume]     BIGINT                          NULL,
+        [BoxVolume]        DECIMAL(18,2)                   NULL,
+        [LiquidVolume]     DECIMAL(18,2)                   NULL,
         [NoDimension]      BIT                             NULL,
         [NoWeight]         BIT                             NULL,
         [Sent]             BIT                             NULL,
@@ -74,14 +74,14 @@ BEGIN
         [ItemCount]        SMALLINT                        NULL,
         [LegacyId]         INT                             NULL
             CONSTRAINT [DF_ItemLog_LegacyId] DEFAULT (NEXT VALUE FOR [dbo].[LegacyIdSeq]),
-        [StoreId]          NVARCHAR(32)                    NULL,
-        [StoreName]        NVARCHAR(200)                   NULL,
+        [StoreId]          NVARCHAR(64)                    NULL,
+        [StoreName]        NVARCHAR(400)                   NULL,
         [NoData]           BIT             NOT NULL
             CONSTRAINT [DF_ItemLog_NoData] DEFAULT ((0)),
-        [ErrorDescription] NVARCHAR(500)                   NULL,
+        [ErrorDescription] NVARCHAR(1000)                  NULL,
         [Direction]        VARCHAR(10)     NOT NULL
             CONSTRAINT [DF_ItemLog_Direction] DEFAULT ('Forward'),
-        [TransactionType]  NVARCHAR(20)    NULL
+        [TransactionType]  NVARCHAR(40)    NULL
             CONSTRAINT [DF_ItemLog_TransactionType] DEFAULT (N'Normal'),
 
         CONSTRAINT [PK_ItemLog] PRIMARY KEY CLUSTERED ([Id] ASC),

@@ -1,0 +1,35 @@
+{
+  "ProfileVersion": 1,
+  "CustomerName": "Rhenus_Durban",
+  "Description": "Rhenus Durban warehouse inbound scanning profile",
+  "FileName": {
+    "Prefix": "DUR",
+    "IncludeBarcodeInFileName": false,
+    "DateTimeSource": "ItemDateTime",
+    "DateTimeFormat": "yyyyMMddHHmmss",
+    "Separator": "_",
+    "Extension": ".csv"
+  },
+  "Csv": {
+    "IncludeHeaders": false,
+    "Delimiter": ",",
+    "Quote": "Always",
+    "QuoteCharacter": "\"",
+    "DecimalSeparator": ",",
+    "NumberFormat": "F2",
+    "DateFormat": "yyyyMMdd",
+    "TimeFormat": "HHmmss",
+    "NullLiteral": "",
+    "Encoding": "UTF-8",
+    "LineEnding": "CRLF",
+    "HubCode": "Rhenus_Durban"
+  },
+  "Columns": [
+    { "Name": "Date",   "Source": "DateOnly" },
+    { "Name": "Time",   "Source": "TimeOnly" },
+    { "Name": "Weight", "Source": "Weight" },
+    { "Name": "Ref",    "Source": "Constant", "Constant": "SYS1" },
+    { "Name": "Vol",    "Source": "ComputedVolumeLxWxH" },
+    { "Name": "DimWt",  "Source": "ComputedDimensionalWeight", "DimWeightFactor": 6000 }
+  ]
+}

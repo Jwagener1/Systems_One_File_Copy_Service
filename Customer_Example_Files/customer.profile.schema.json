@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CustomerProfile",
+  "description": "Schema for Systems One customer profile JSON files",
+  "type": "object",
+  "required": ["ProfileVersion", "CustomerName", "FileName", "Csv", "Columns"],
+  "properties": {
+    "ProfileVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "Schema version — must always be 1"
+    },
+    "CustomerName": {
+      "type": "string",
+      "description": "Must match the Customer value in upload_settings.json"
+    },
+    "Description": {
+      "type": "string"
+    },
+    "FileName": {
+      "type": "object",
+      "required": ["Prefix", "Extension"],
+      "properties": {
+        "Prefix":                  { "type": "string" },
+        "IncludeBarcodeInFileName":{ "type": "boolean", "default": false },
+        "DateTimeSource":          { "type": "string", "enum": ["ItemDateTime", "Now"], "default": "ItemDateTime" },
+        "DateTimeFormat":          { "type": "string", "default": "yyyyMMddHHmmss" },
+        "Separator":               { "type": "string", "default": "_" },
+        "Extension":               { "type": "string", "default": ".csv" }
+      }
+    },
+    "Csv": {
+      "type": "object",
+      "properties": {
+        "IncludeHeaders":   { "type": "boolean", "default": false },
+        "Delimiter":        { "type": "string", "default": "," },
+        "Quote":            { "type": "string", "enum": ["Always", "Never", "Minimal"], "default": "Always" },
+        "QuoteCharacter":   { "type": "string", "default": "\"" },
+        "DecimalSeparator": { "type": "string", "default": "." },
+        "NumberFormat":     { "type": "string", "default": "F2" },
+        "DateFormat":       { "type": "string", "default": "yyyyMMdd" },
+        "TimeFormat":       { "type": "string", "default": "HHmmss" },
+        "NullLiteral":      { "type": "string", "default": "" },
+        "Encoding":         { "type": "string", "enum": ["UTF-8", "UTF-8-BOM", "ASCII", "Windows-1252"], "default": "UTF-8" },
+        "LineEnding":       { "type": "string", "enum": ["CRLF", "LF"], "default": "CRLF" },
+        "HubCode":          { "type": "string", "description": "Falls back to WindowsShare.Hub_Code when empty" }
+      }
+    },
+    "Columns": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["Name", "Source"],
+        "properties": {
+          "Name":             { "type": "string" },
+          "Source": {
+            "type": "string",
+            "enum": [
+              "Barcode", "ItemDateTime", "DateOnly", "TimeOnly",
+              "Length", "Width", "Height", "Weight",
+              "BoxVolume", "LiquidVolume", "ItemCount", "ItemSpec",
+              "DateTimeBarcode", "HubCode", "Constant", "Null",
+              "ComputedVolumeLxWxH", "ComputedDimensionalWeight"
+            ]
+          },
+          "Constant":         { "type": "string", "description": "Required when Source is Constant" },
+          "DimWeightFactor":  { "type": "number", "description": "Required when Source is ComputedDimensionalWeight" }
+        }
+      }
+    }
+  }
+}

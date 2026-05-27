@@ -11,7 +11,7 @@ public class UploadRecord
     public decimal Weight { get; set; }
     public decimal BoxVolume { get; set; }
     public decimal LiquidVolume { get; set; }
-    public int ItemCount { get; set; }
+    public short ItemCount { get; set; }
     public string ItemSpec { get; set; } = string.Empty;
     public bool Valid { get; set; }
     public bool? Sent { get; set; }

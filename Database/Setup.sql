@@ -49,7 +49,7 @@ BEGIN
         [Weight]       DECIMAL(18, 4)                   NOT NULL  CONSTRAINT [DF_ItemLog_Weight]       DEFAULT (0),
         [BoxVolume]    DECIMAL(18, 4)                   NOT NULL  CONSTRAINT [DF_ItemLog_BoxVolume]    DEFAULT (0),
         [LiquidVolume] DECIMAL(18, 4)                   NOT NULL  CONSTRAINT [DF_ItemLog_LiquidVolume] DEFAULT (0),
-        [ItemCount]    INT                              NOT NULL  CONSTRAINT [DF_ItemLog_ItemCount]    DEFAULT (0),
+        [ItemCount]    SMALLINT                         NOT NULL  CONSTRAINT [DF_ItemLog_ItemCount]    DEFAULT (0),
         [ItemSpec]     NVARCHAR(500)                    NULL,
         [Valid]        BIT                              NOT NULL  CONSTRAINT [DF_ItemLog_Valid]        DEFAULT (0),
         [Sent]         BIT                              NULL,

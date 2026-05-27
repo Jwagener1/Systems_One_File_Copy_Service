@@ -1,5 +1,9 @@
 #define MyAppName        "Systems One File Copy Service"
-#define MyAppVersion     "1.0.0"
+; MyAppVersion can be supplied by the build pipeline via /DMyAppVersion=...
+; Only fall back to this default when it was not passed on the command line.
+#ifndef MyAppVersion
+  #define MyAppVersion   "1.0.0"
+#endif
 #define MyAppPublisher   "Systems One"
 #define MyAppExeName     "SystemsOneFileCopyService.exe"
 #define MyAppServiceName "SystemsOneFileCopyService"

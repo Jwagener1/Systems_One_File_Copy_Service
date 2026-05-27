@@ -72,14 +72,11 @@ public class UploadOrchestrationService : IUploadOrchestrationService
             LoggingService.Upload.Information("Record {Id} ({Barcode}): CSV sent.", record.Id, record.Barcode);
 
             // ── Step 4: process image (optional, never fails the record) ──────
+            // Skipped silently when disabled so logs aren't flooded for sites that don't use images.
             if (_settings.FileSettings.Image.EnableUpload)
             {
                 LoggingService.Upload.Debug("Record {Id} — step 4/5: processing image.", record.Id);
                 await ProcessImageAsync(record, ct);
-            }
-            else
-            {
-                LoggingService.Upload.Debug("Record {Id} — step 4/5: image upload disabled, skipping.", record.Id);
             }
 
             // ── Step 5: mark record complete ──────────────────────────────────

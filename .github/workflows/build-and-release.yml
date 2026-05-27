@@ -45,6 +45,9 @@ jobs:
             --self-contained true `
             --output ./publish `
             /p:PublishSingleFile=false `
+            /p:Version=${{ steps.version.outputs.VERSION_NUMBER }} `
+            /p:FileVersion=${{ steps.version.outputs.VERSION_NUMBER }} `
+            /p:AssemblyVersion=${{ steps.version.outputs.VERSION_NUMBER }} `
             --no-restore
 
       - name: Build Inno Setup Installer

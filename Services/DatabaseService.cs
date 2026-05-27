@@ -9,6 +9,7 @@ public interface IDatabaseService
 {
     Task<List<UploadRecord>> GetUnsentRecordsAsync(CancellationToken ct);
     Task MarkCsvSentAsync(int recordId, CancellationToken ct);
+    Task MarkImageSentAsync(int recordId, CancellationToken ct);
     Task MarkCompleteAsync(int recordId, CancellationToken ct);
 }
 
@@ -31,7 +32,7 @@ public class DatabaseService : IDatabaseService
         {
             await using var ctx = CreateContext();
             var records = await ctx.UploadRecords
-                .Where(r => r.Valid && (r.Sent == null || r.Sent == false))
+                .Where(r => r.Valid == true && (r.Sent == null || r.Sent == false))
                 .OrderBy(r => r.ItemDateTime)
                 .ToListAsync(ct);
 
@@ -72,6 +73,29 @@ public class DatabaseService : IDatabaseService
         catch (Exception ex)
         {
             LoggingService.Upload.Error(ex, "Failed to mark record {Id} as CSV sent.", recordId);
+            throw;
+        }
+    }
+
+    public async Task MarkImageSentAsync(int recordId, CancellationToken ct)
+    {
+        LoggingService.Upload.Debug("Marking record {Id} as image sent...", recordId);
+        try
+        {
+            await using var ctx = CreateContext();
+            var record = await ctx.UploadRecords.FindAsync(new object[] { recordId }, ct);
+            if (record is null)
+            {
+                LoggingService.Upload.Warning("MarkImageSentAsync: record {Id} not found in database.", recordId);
+                return;
+            }
+            record.ImageSent = true;
+            await ctx.SaveChangesAsync(ct);
+            LoggingService.Upload.Debug("Record {Id} marked as image sent.", recordId);
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Upload.Error(ex, "Failed to mark record {Id} as image sent.", recordId);
             throw;
         }
     }

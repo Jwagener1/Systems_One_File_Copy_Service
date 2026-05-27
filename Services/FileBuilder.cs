@@ -85,7 +85,7 @@ public class FileBuilder : IFileBuilder
         var parts = new List<string> { fn.Prefix };
 
         if (fn.IncludeBarcodeInFileName)
-            parts.Add(SanitizeFileName(record.Barcode));
+            parts.Add(SanitizeFileName(record.Barcode ?? string.Empty));
 
         parts.Add(dateTime.ToString(fn.DateTimeFormat));
 
@@ -111,26 +111,31 @@ public class FileBuilder : IFileBuilder
         var csv = profile.Csv;
         return source switch
         {
-            ColumnSource.Barcode              => record.Barcode,
-            ColumnSource.ItemDateTime         => record.ItemDateTime.ToString($"{csv.DateFormat} {csv.TimeFormat}"),
-            ColumnSource.DateOnly             => record.ItemDateTime.ToString(csv.DateFormat),
-            ColumnSource.TimeOnly             => record.ItemDateTime.ToString(csv.TimeFormat),
-            ColumnSource.Length               => FormatDecimal(record.Length, csv),
-            ColumnSource.Width                => FormatDecimal(record.Width, csv),
-            ColumnSource.Height               => FormatDecimal(record.Height, csv),
-            ColumnSource.Weight               => FormatDecimal(record.Weight, csv),
-            ColumnSource.BoxVolume            => FormatDecimal(record.BoxVolume, csv),
-            ColumnSource.LiquidVolume         => FormatDecimal(record.LiquidVolume, csv),
-            ColumnSource.ItemCount            => record.ItemCount.ToString(),
-            ColumnSource.ItemSpec             => record.ItemSpec,
-            ColumnSource.DateTimeBarcode      => $"{record.ItemDateTime.ToString(csv.DateFormat + csv.TimeFormat)}|{record.Barcode}",
-            ColumnSource.HubCode              => string.IsNullOrEmpty(csv.HubCode) ? _settings.WindowsShare.Hub_Code : csv.HubCode,
-            ColumnSource.Constant             => col.Constant,
-            ColumnSource.Null                 => null,
-            ColumnSource.ComputedVolumeLxWxH  => FormatDecimal(record.Length * record.Width * record.Height, csv),
+            ColumnSource.Barcode          => record.Barcode,
+            ColumnSource.ItemDateTime     => record.ItemDateTime.ToString($"{csv.DateFormat} {csv.TimeFormat}"),
+            ColumnSource.DateOnly         => record.ItemDateTime.ToString(csv.DateFormat),
+            ColumnSource.TimeOnly         => record.ItemDateTime.ToString(csv.TimeFormat),
+            ColumnSource.Length           => record.Length.HasValue   ? FormatDecimal(record.Length.Value, csv)   : null,
+            ColumnSource.Width            => record.Width.HasValue    ? FormatDecimal(record.Width.Value, csv)    : null,
+            ColumnSource.Height           => record.Height.HasValue   ? FormatDecimal(record.Height.Value, csv)   : null,
+            ColumnSource.Weight           => record.Weight.HasValue   ? FormatDecimal(record.Weight.Value, csv)   : null,
+            ColumnSource.BoxVolume        => record.BoxVolume.HasValue    ? FormatDecimal((decimal)record.BoxVolume.Value, csv)    : null,
+            ColumnSource.LiquidVolume     => record.LiquidVolume.HasValue ? FormatDecimal((decimal)record.LiquidVolume.Value, csv) : null,
+            ColumnSource.ItemCount        => record.ItemCount?.ToString(),
+            ColumnSource.ItemSpec         => record.ItemSpec?.ToString(),
+            ColumnSource.DateTimeBarcode  => $"{record.ItemDateTime.ToString(csv.DateFormat + csv.TimeFormat)}|{record.Barcode}",
+            ColumnSource.HubCode          => string.IsNullOrEmpty(csv.HubCode) ? _settings.WindowsShare.Hub_Code : csv.HubCode,
+            ColumnSource.Constant         => col.Constant,
+            ColumnSource.Null             => null,
+
+            ColumnSource.ComputedVolumeLxWxH when record.Length.HasValue && record.Width.HasValue && record.Height.HasValue
+                => FormatDecimal(record.Length.Value * record.Width.Value * record.Height.Value, csv),
+
             ColumnSource.ComputedDimensionalWeight when col.DimWeightFactor is > 0
-                                              => FormatDecimal(record.Length * record.Width * record.Height / col.DimWeightFactor!.Value, csv),
-            _                                 => null
+                && record.Length.HasValue && record.Width.HasValue && record.Height.HasValue
+                => FormatDecimal(record.Length.Value * record.Width.Value * record.Height.Value / col.DimWeightFactor!.Value, csv),
+
+            _ => null
         };
     }
 

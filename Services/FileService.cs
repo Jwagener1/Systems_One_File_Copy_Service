@@ -22,7 +22,7 @@ public class FileService : IFileService
     public Task<string?> FindImageAsync(UploadRecord record, CancellationToken ct)
     {
         var sourceFolder = _settings.FileSettings.Image.SourceFolder;
-        var expectedFileName = $"{SanitizeFileName(record.Barcode)}-{record.ItemDateTime:yyyyMMddHHmmss}.jpg";
+        var expectedFileName = $"{SanitizeFileName(record.Barcode ?? string.Empty)}-{record.ItemDateTime:yyyyMMddHHmmss}.jpg";
         var expectedPath = Path.Combine(sourceFolder, expectedFileName);
 
         LoggingService.Upload.Debug("Looking for image: {Path}", expectedPath);

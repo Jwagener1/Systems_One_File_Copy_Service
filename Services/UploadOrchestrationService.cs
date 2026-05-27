@@ -117,6 +117,7 @@ public class UploadOrchestrationService : IUploadOrchestrationService
             await _pipeline.ExecuteAsync(async token =>
                 await _transfer.CopyFileAsync(archived, _settings.WindowsShare.ImageRemoteDirectory, token), ct);
 
+            await _db.MarkImageSentAsync(record.Id, ct);
             _fileService.DeleteSourceFile(source);
             LoggingService.Upload.Information("Record {Id} ({Barcode}): image sent.", record.Id, record.Barcode);
         }
